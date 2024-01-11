@@ -6,6 +6,8 @@
 
 ## Slides
 
+- Find the slides [here](https://www.slideshare.net/PhilipWelz/scaling-aks-nodes-leveraging-cluster-autoscaler-karpenter-and-node-autoprovision)
+
 ## Demo
 
 ### Cluster-Autoscaler
@@ -39,13 +41,21 @@ az aks get-credentials --resource-group $RG_CA --name $AKS_CA
 #### Demo
 
 ```bash
+kubectl get nodes --show-labels | grep "node.kubernetes.io/instance-type"
+kubectl get nodes --show-labels | grep "kubernetes.azure.com/nodepool-type"
+kubectl get configmap -n kube-system cluster-autoscaler-status -o yaml
+# open second terminal and watch cluster-autoscaler events
+kubectl get events -A --field-selector source=cluster-autoscaler -w
 kubectl create ns inflate
 kubectl -n inflate apply -f ./demo/inflate.yaml
-kubectl get nodes --show-labels
+# switch back to terminal 1 and scale deployment
 kubectl -n inflate scale deployment/inflate --replicas=10
-kubectl -n inflate events
-# open new terminal and watch nodes
-kubectl get nodes -w
+# explore scheduler events
+kubectl get events -n inflate \
+ --sort-by=.metadata.creationTimestamp \
+ --field-selector source=default-scheduler
+kubectl -n inflate get pods -o wide
+kubectl -n inflate scale deployment/inflate --replicas=11
 kubectl -n inflate get pods -o wide
 ```
 
@@ -53,7 +63,7 @@ kubectl -n inflate get pods -o wide
 
 ```bash
 az aks delete --resource-group $RG_CA --name $AKS_CA --yes \
-  && az group delete --name $RG_CA --yes 
+  && az group delete --name $RG_CA --yes
 ```
 
 ### Node-Autoprovision
@@ -103,19 +113,25 @@ az aks get-credentials --resource-group $RG_NAP --name $AKS_NAP
 ```bash
 kubectl get nodes
 kubectl get nodes --show-labels | grep "node.kubernetes.io/instance-type"
-kubectl api-resources
-kubectl get nodepools
-kubectl get nodepools default -oyaml | yq
-kubectl get aksnodeclasses
-kubectl get aksnodeclasses default -oyaml | yq
+kubectl get nodes --show-labels | grep "kubernetes.azure.com/nodepool-type"
+# open new terminal and watch karpernter events
+kubectl get events -A --field-selector source=karpenter -w
+# switch back to terminal 1 and scale deployment
 kubectl create ns inflate
 kubectl -n inflate apply -f ./demo/inflate.yaml
 kubectl -n inflate scale deployment/inflate --replicas=10
-# open new terminal and watch karpernter events
-kubectl get events -A --field-selector source=karpenter -w
+# explore karepenter resources
+kubectl api-resources
+kubectl get nodepools
+kubectl get nodepools default -oyaml | yq
+kubectl get nodepools system-surge -oyaml | yq
+kubectl get aksnodeclasses
+kubectl get aksnodeclasses default -oyaml | yq
+kubectl get aksnodeclasses system-surge -oyaml | yq
 kubectl -n inflate get pods -o wide
 kubectl get nodeclaims
 kubectl get nodeclaims default- -oyaml | yq
+# play around with scaling
 kubectl -n inflate scale deployment/inflate --replicas=15
 kubectl get nodeclaims
 kubectl -n inflate scale deployment/inflate --replicas=12
