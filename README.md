@@ -8,6 +8,11 @@
 
 - Find the slides [here](https://www.slideshare.net/PhilipWelz/scaling-aks-nodes-leveraging-cluster-autoscaler-karpenter-and-node-autoprovision)
 
+
+## Recording
+
+- The recording of this talk is available [here](https://www.youtube.com/live/XPi1ICQzl3Q?si=J3TLjIAbK5YdpBQF&t=8353)
+
 ## Demo
 
 ### Cluster-Autoscaler
